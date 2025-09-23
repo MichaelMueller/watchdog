@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}{{ service.name }} - Watchdog{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-server"></i> {{ service.name }}</h1>
+    <div class="btn-group">
+        <button class="btn btn-outline-primary" onclick="manualCheck({{ service.id }})">
+            <i class="fas fa-sync"></i> Check Now
+        </button>
+        <a href="{{ url_for('main.edit_service', service_id=service.id) }}" class="btn btn-outline-secondary">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Service Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 40%;">Host:</th>
+                        <td><code>{{ service.host }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Port:</th>
+                        <td><code>{{ service.port }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Check Type:</th>
+                        <td><span class="badge bg-info">{{ service.check_type.upper() }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Check Interval:</th>
+                        <td>{{ service.check_interval }} seconds</td>
+                    </tr>
+                    <tr>
+                        <th>Admin Email:</th>
+                        <td>{{ service.admin_email }}</td>
+                    </tr>
+                    <tr>
+                        <th>Description:</th>
+                        <td>{{ service.description or 'No description provided' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Status Overview</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_checks %}
+                <div class="text-center mb-3">
+                    <h3 class="text-{{ 'success' if uptime_percentage > 95 else 'warning' if uptime_percentage > 80 else 'danger' }}">
+                        {{ "%.1f"|format(uptime_percentage) }}%
+                    </h3>
+                    <p class="text-muted">Uptime (24h)</p>
+                </div>
+                {% endif %}
+                
+                {% if recent_checks %}
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Latest Status:</th>
+                        <td>
+                            {% set latest = recent_checks[0] %}
+                            {% if latest.status.value == 'up' %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> UP</span>
+                            {% elif latest.status.value == 'down' %}
+                                <span class="badge bg-danger"><i class="fas fa-times"></i> DOWN</span>
+                            {% else %}
+                                <span class="badge bg-secondary"><i class="fas fa-question"></i> UNKNOWN</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Last Checked:</th>
+                        <td>{{ latest.checked_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    </tr>
+                    {% if latest.response_time %}
+                    <tr>
+                        <th>Response Time:</th>
+                        <td>{{ "%.3f"|format(latest.response_time) }}s</td>
+                    </tr>
+                    {% endif %}
+                    {% if latest.error_message %}
+                    <tr>
+                        <th>Error:</th>
+                        <td class="text-danger">{{ latest.error_message }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+                {% else %}
+                <div class="text-center text-muted">
+                    <p>No checks performed yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if recent_checks %}
+<div class="card mt-4">
+    <div class="card-header">
+        <h5>Recent Check History (Last 24 Hours)</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Response Time</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for check in recent_checks[:20] %}
+                    <tr>
+                        <td>{{ check.checked_at.strftime('%H:%M:%S') }}</td>
+                        <td>
+                            {% if check.status.value == 'up' %}
+                                <span class="badge bg-success">UP</span>
+                            {% elif check.status.value == 'down' %}
+                                <span class="badge bg-danger">DOWN</span>
+                            {% else %}
+                                <span class="badge bg-secondary">UNKNOWN</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if check.response_time %}
+                                {{ "%.3f"|format(check.response_time) }}s
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="text-danger">{{ check.error_message or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function manualCheck(serviceId) {
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+    button.disabled = true;
+    
+    fetch(`/api/services/${serviceId}/check`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                // Reload the page to show updated status
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error performing check');
+        })
+        .finally(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        });
+}
+</script>
+{% endblock %}
