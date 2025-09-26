@@ -8,7 +8,7 @@ from watchdog.data.oidc_config import OidcConfig
 
 
 # --- OIDC client wrapper ---
-class OidcClient:
+class Oidc:
     FIXED_SCOPES = ["openid", "profile", "email"]
 
     def __init__(self, config: OidcConfig, post_login_redirect: str):
@@ -90,9 +90,17 @@ class OidcClient:
         }
             
         url = f"{auth_endpoint}?{urllib.parse.urlencode(params)}"
-        return RedirectResponse(url)
+        response = RedirectResponse(url)
+        response.set_cookie("oidc_state", state, httponly=True, secure=True)
+        return response
 
     async def _callback(self, request: Request):
+        state = request.query_params.get("state")
+        if not state or state != request.cookies.get("oidc_state"):
+            return JSONResponse({"error": "Invalid state"}, status_code=400)
+        response = RedirectResponse(request.url_for(self._post_login_redirect))
+        response.delete_cookie("oidc_state")
+        
         code = request.query_params.get("code")
         if not code:
             return JSONResponse({"error": "Missing authorization code"}, status_code=400)
@@ -104,27 +112,43 @@ class OidcClient:
         if not id_token:
             return JSONResponse({"error": "No ID token"}, status_code=400)
 
-        _ = await self.verify_id_token(id_token)
+        user = await self.verify_id_token(id_token)
+        if self.config.allowed_emails:
+            email = user.get("email")
+            if email not in self.config.allowed_emails:
+                raise HTTPException(status_code=403, detail="User not allowed")
+        if self.config.allowed_subs:
+            sub = user.get("sub")
+            if sub not in self.config.allowed_subs:
+                raise HTTPException(status_code=403, detail="User not allowed")    
         
+        if self.config.allowed_o365_groups or self.config.allowed_o365_roles:     
+            access_token = tokens.get("access_token")
+                   
+            if not access_token:
+                raise HTTPException(status_code=403, detail="No access token to verify group membership")
+            user_groups, user_roles = await self._fetch_user_groups_and_roles(access_token)
+            
+            has_one_group_or_role = False
+            if self.config.allowed_o365_groups and any(g in self.config.allowed_o365_groups for g in user_groups):
+                has_one_group_or_role = True
+            if self.config.allowed_o365_roles and any(r in self.config.allowed_o365_roles for r in user_roles):
+                has_one_group_or_role = True
+            if not has_one_group_or_role:
+                raise HTTPException(status_code=403, detail="User not in allowed groups or roles")
+
         # You typically need to set a session cookie or return a bearer token for authentication.
         # Example: Set a session cookie with the ID token (not recommended for production, use a session manager).
-        response = RedirectResponse(request.url_for(self._post_login_redirect))
-        response.set_cookie("id_token", id_token, httponly=True, secure=True)
+        response.set_cookie("token", id_token, httponly=True, secure=True)
         return response
-        
-        # ✅ Redirect to configured target
-        return RedirectResponse(request.url_for(self._post_login_redirect) )
 
     # --- Public dependency for other routes ---
     async def get_current_user(self, request: Request) -> dict:
         """FastAPI dependency: extracts and verifies ID token from Authorization header."""
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            id_token = auth_header.split(" ", 1)[1]
-        else:
-            id_token = request.cookies.get("id_token")
-            if not id_token:
-                raise HTTPException(status_code=401, detail="Missing Bearer token or session cookie")
+
+        id_token = request.cookies.get("token")
+        if not id_token:
+            raise HTTPException(status_code=401, detail="Missing Bearer token or session cookie")
         return await self.verify_id_token(id_token)
 
     def get_router(self) -> APIRouter:
@@ -132,3 +156,22 @@ class OidcClient:
         router.add_api_route("/login", self._login, methods=["GET"])
         router.add_api_route("/callback", self._callback, methods=["GET"], name="callback")
         return router
+
+    async def _fetch_user_groups_and_roles(self, access_token: str) -> tuple[list[str], list[str]]:
+        url = "https://graph.microsoft.com/v1.0/me/memberOf?$select=id,displayName"
+        headers = {"Authorization": f"Bearer {access_token}"}
+        async with httpx.AsyncClient() as client:
+            r = await client.get(url, headers=headers)
+            if r.status_code != 200:
+                raise HTTPException(403, detail="Cannot read user groups")
+            data = r.json()
+            
+            roles = []
+            groups = []
+            for entry in data.get("value", []):
+                if entry["@odata.type"] == "#microsoft.graph.group":
+                    groups.append(entry["displayName"])
+                elif entry["@odata.type"] == "#microsoft.graph.directoryRole":
+                    roles.append(entry["displayName"])
+            
+            return groups, roles

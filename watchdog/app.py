@@ -11,7 +11,7 @@ from authlib.integrations.httpx_client import AsyncOAuth2Client
 import httpx
 # local imports
 from watchdog.data.web_app_config import WebAppConfig
-from watchdog.oidc_client import OidcClient
+from watchdog.oidc import Oidc
 
 ###### FUNCTIONS ######
 _oidc_metadata_cache: dict[str, dict] = {}
@@ -55,18 +55,20 @@ static_dir = os.path.join(base_dir, "public_html")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 templates = Jinja2Templates(directory=template_dir)
 
-oidc = OidcClient(config.oidc, post_login_redirect="welcome")
+oidc = Oidc(config.oidc, post_login_redirect="me")
 app.include_router(oidc.get_router())
 
-# Example protected route
 @app.get("/")
 async def start():
     return RedirectResponse(url="/login")
 
-# Example protected route
 @app.get("/welcome")
 async def welcome(user: dict = Depends(oidc.get_current_user)):
     return {"message": f"Hello {user.get('email') or user.get('sub')}!"}
+
+@app.get("/me")
+async def me(user: dict = Depends(oidc.get_current_user)):
+    return JSONResponse(user)
 
 # routes
 
