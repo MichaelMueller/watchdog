@@ -1,0 +1,27 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "watchdog"
+version = "0.0.1"
+authors = [
+    { name = "Michael Mueller", email = "michaelmuelleronline@gmx.de" }
+]
+description = "A web app to setup watchdog on services"
+readme = "README.md"
+license = { text = "Apache-2.0" } # Specify your license here if available
+dynamic = ["dependencies"] # Changed
+
+[project.urls]
+"Source Code" = "https://github.com/MichaelMueller/watchdog.git"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.dynamic]
+# Dynamically loads dependencies from requirements.txt
+dependencies = { file = ["requirements.txt"] }

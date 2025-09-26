@@ -1,0 +1,7 @@
+[run]
+omit = watchdog/tests/*
+    watchdog/tests/**
+    tmp/*
+    tmp/**
+    var/*
+    var/**
