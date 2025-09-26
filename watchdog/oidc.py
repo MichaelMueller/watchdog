@@ -158,7 +158,7 @@ class Oidc:
         return router
 
     async def _fetch_user_groups_and_roles(self, access_token: str) -> tuple[list[str], list[str]]:
-        url = "https://graph.microsoft.com/v1.0/me/memberOf?$select=id,displayName"
+        url = "https://graph.microsoft.com/v1.0/me/memberOf?$select=id,displayName,mail,mailEnabled,securityEnabled,groupTypes"
         headers = {"Authorization": f"Bearer {access_token}"}
         async with httpx.AsyncClient() as client:
             r = await client.get(url, headers=headers)
