@@ -1,5 +1,9 @@
-import asyncio
-from watchdog.web_app import WebApp
+#3rd party
+import uvicorn
+#internal
+from watchdog.data.web_app_config import WebAppConfig
 
 if __name__ == "__main__":
-    WebApp().run()
+    config = WebAppConfig()
+    uvicorn_args = config.model_dump(exclude={"oidc"})
+    uvicorn.run("watchdog.app:app", **uvicorn_args)

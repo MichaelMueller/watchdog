@@ -1,0 +1,101 @@
+:root {
+    --font_m: 16px;
+    --space_m: 10px;
+    --logo_height: 64px;
+    --link-color: #d88200;
+    --link-hover-color: #fcb140;
+    --link-active-color: #fcb140;
+}
+
+/* Basic CSS Reset */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+html, body {
+    height: 100%;
+}
+h1, h2, h3, h4, h5, h6, p, ul, ol, li, pre, blockquote {
+    margin: 0;
+    padding: 0;
+}
+
+body
+{
+    font-size: var(--m_font_size);
+    background: #181818;
+    color: #fff;
+    font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a:hover,
+a:focus {
+    color: var(--link-hover-color);
+}
+
+a:active {
+    color: var(--link-active-color);
+}
+
+/* classes */
+.row
+{
+    display: flex;    
+}
+
+.row_gutter_m > *
+{
+    margin-left: var(--space_m);
+    margin-top: var(--space_m);
+}
+
+.row_gutter_m
+{
+    margin-left: calc(-1 * var(--space_m));
+    margin-top: calc(-1 * var(--space_m));
+}
+
+.pad_m
+{
+    padding: var(--space_m);
+}
+
+.col
+{
+    flex-direction: column;
+}
+
+.space_between
+{
+    justify-content: space-between;
+}
+
+.center
+{
+    justify-content: center;
+}
+
+.cross_center
+{
+    align-items: center;
+}
+
+.stretch
+{
+    flex:1;
+}
+.logo_height
+{
+    height: var(--logo_height);
+    width: auto;
+}   
+

@@ -1,83 +1,32 @@
 {# templates/base.html #}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>{% block title %}My App{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Pico.css -->
-  <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
-  <style>
-    /* Navbar styling */
-    nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .nav-left {
-      display: flex;
-      align-items: center;
-    }
-    .nav-left img {
-      height: 32px;
-      margin-right: 0.5rem;
-    }
-    .burger {
-      display: none;
-      font-size: 1.5rem;
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
-    .nav-links {
-      display: flex;
-      gap: 1rem;
-    }
-    @media (max-width: 768px) {
-      .nav-links {
-        display: none;
-        flex-direction: column;
-        margin-top: 1rem;
-      }
-      .nav-links.active {
-        display: flex;
-      }
-      .burger {
-        display: block;
-      }
-    }
-  </style>
-</head>
-<body>
-  <header class="container">
-    <nav>
-      <div class="nav-left">
-        <a href="/"><img src="{{ url_for('static', path='icon.svg') }}" alt="Logo"></a>
-        <strong>My App</strong>
-      </div>
-      <button class="burger" onclick="toggleMenu()">☰</button>
-      <div class="nav-links" id="nav-links">
-        <a href="/">Home</a>
-        <a href="/about">About</a>
-        <a href="/contact">Contact</a>
-      </div>
-    </nav>
-  </header>
 
-  <main class="container">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <!--<link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.orange.min.css">-->
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">   
+    <title>Watchdog</title>
+  </head>
+  <body>
+
+    <div class="row space_between pad_m cross_center">
+      <a href="/"><img src="{{ url_for('static', path='icon.svg') }}" alt="Logo" class="logo_height"></a>
+      <h1>Watchdog</h1>
+      <div class="row cross_center row_gutter_m">
+        <a href="#">Logout</a>
+        <a href="#">Login</a>
+      </div>
+  </div>
+
     {% block content %}
     <h1>Welcome</h1>
     {% endblock %}
-  </main>
-
+  </body>
+  
   <footer class="container">
     <small>&copy; {{ current_year }} My Company</small>
   </footer>
-
-  <script>
-    function toggleMenu() {
-      document.getElementById("nav-links").classList.toggle("active");
-    }
-  </script>
-</body>
 </html>

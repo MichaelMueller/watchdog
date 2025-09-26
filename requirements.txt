@@ -3,9 +3,10 @@ pydantic_settings
 fastapi
 jinja2
 uvicorn[standard]
+httpx
 # modules
-PyJWT
-argon2-cffi
+python-jose[cryptography]
+aiohttp
 # testing
 pytest
 pytest-cov
