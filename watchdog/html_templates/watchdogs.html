@@ -1,0 +1,10 @@
+{# templates/login.html #}
+{% extends "base.html" %}
+
+{% block content %}
+
+  {% for watchdog in watchdogs %}
+    <li>{{ watchdog.name }} — {{ watchdog.enabled }}</li>
+  {% endfor %}
+
+{% endblock %}

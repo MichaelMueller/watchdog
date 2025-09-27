@@ -10,23 +10,26 @@
     <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">   
     <title>Watchdog</title>
   </head>
-  <body>
+
+  <body class="col screen_height">
 
     <div class="row space_between pad_m cross_center">
-      <a href="/"><img src="{{ url_for('static', path='icon.svg') }}" alt="Logo" class="logo_height"></a>
-      <h1>Watchdog</h1>
-      <div class="row cross_center row_gutter_m">
-        <a href="#">Logout</a>
-        <a href="#">Login</a>
-      </div>
-  </div>
+        <a href="/"><img src="{{ url_for('static', path='icon.svg') }}" alt="Logo" class="logo_height"></a>
+        <h1>Watchdog</h1>
+        <div class="row cross_center row_gutter_m {% if user is not defined %}invisible{% endif %}">
+          <a href="/logout">Logout</a>
+        </div>
+    </div>    
 
-    {% block content %}
-    <h1>Welcome</h1>
-    {% endblock %}
+    <div class="stretch overflow_vertical_auto">
+      {% block content %}
+        <h1>Welcome</h1>
+      {% endblock %}
+    </div>
+
+    <div>
+      <small>&copy; {{ current_year }} My Company</small>
+    </div>
+
   </body>
-  
-  <footer class="container">
-    <small>&copy; {{ current_year }} My Company</small>
-  </footer>
 </html>

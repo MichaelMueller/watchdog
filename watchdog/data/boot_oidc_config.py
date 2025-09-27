@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import BaseModel, HttpUrl, Field
 
 
-class OidcConfig(BaseModel):
+class BootOidcConfig(BaseModel):
     issuer: str = Field(..., pattern=r'^https?://.+')
     client_id: str
     client_s: str

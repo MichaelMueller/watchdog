@@ -5,6 +5,7 @@
     --link-color: #d88200;
     --link-hover-color: #fcb140;
     --link-active-color: #fcb140;
+    --border: 1px solid #333;
 }
 
 /* Basic CSS Reset */
@@ -47,6 +48,16 @@ a:active {
 }
 
 /* classes */
+.screen_height
+{
+    height: 100vh;
+}
+
+.overflow_vertical_auto
+{
+    overflow-y: auto;
+}
+
 .row
 {
     display: flex;    
@@ -74,28 +85,48 @@ a:active {
     flex-direction: column;
 }
 
-.space_between
+.space_between 
 {
     justify-content: space-between;
 }
 
-.center
+.center 
 {
     justify-content: center;
 }
 
-.cross_center
+.cross_center 
 {
     align-items: center;
 }
 
-.stretch
+.stretch 
 {
     flex:1;
 }
-.logo_height
+
+.logo_height 
 {
     height: var(--logo_height);
     width: auto;
 }   
 
+.border_top
+{
+    border-top: var(--border);
+}
+
+.border_bottom
+{
+    border-bottom: var(--border);
+}
+
+.invisible
+{
+    visibility: hidden;
+}
+
+.no_display
+{
+    display: none;
+}

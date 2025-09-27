@@ -1,35 +1,16 @@
-# Standard library imports
+# bultin
 import os, json, secrets, asyncio, urllib.parse, logging
 from typing import Callable, Optional
-# FastAPI imports
+from contextlib import asynccontextmanager
+# 3rd party
 from fastapi import FastAPI, HTTPException, Request, Depends, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse, JSONResponse
-# Async HTTP client
-from authlib.integrations.httpx_client import AsyncOAuth2Client
 import httpx
 # local imports
 from watchdog.data.web_app_config import WebAppConfig
 from watchdog.oidc import Oidc
-
-###### FUNCTIONS ######
-_oidc_metadata_cache: dict[str, dict] = {}
-_oidc_lock = asyncio.Lock()
-
-async def get_server_metadata(issuer: str) -> dict:
-    if issuer in _oidc_metadata_cache:
-        return _oidc_metadata_cache[issuer]
-
-    async with _oidc_lock:
-        if issuer not in _oidc_metadata_cache:  # double-check inside lock
-            url = issuer.rstrip("/") + "/.well-known/openid-configuration"
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(url, timeout=5.0)
-                resp.raise_for_status()
-                _oidc_metadata_cache[issuer] = resp.json()
-
-    return _oidc_metadata_cache[issuer]
 
 ###### APP SETUP ######
 # Load configuration
@@ -44,31 +25,92 @@ logging.basicConfig(
 )
 logging.info("Starting application with configuration:")
 logging.info(json.dumps(config.model_dump(), indent=4))
+
+# FastAPI app lifecycle events using lifespan context
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logging.info("FastAPI app startup: initializing resources")
+    yield
+    logging.info("FastAPI app shutdown: cleaning up resources")
+    # Example: cleanup tasks if needed
+
+# create app
+app = FastAPI(lifespan=lifespan)
+
 # create app
 app = FastAPI()
 
 # setup dirs
 base_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(base_dir)
+var_dir = os.path.join(project_dir, "var")
+data_file = os.path.join(var_dir, "data.json")
+os.makedirs(var_dir, exist_ok=True)
+
 template_dir = os.path.join(base_dir, "html_templates")
 static_dir = os.path.join(base_dir, "public_html")
 
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 templates = Jinja2Templates(directory=template_dir)
 
-oidc = Oidc(config.oidc, post_login_redirect="me")
+oidc_config_data = config.oidc.model_dump()
+oidc_config_data.update({"post_login_redirect": "watchdogs", "post_logout_redirect": "logged_out"})
+oidc = Oidc(Oidc.Config(**oidc_config_data))
 app.include_router(oidc.get_router())
 
 @app.get("/")
 async def start():
     return RedirectResponse(url="/login")
 
-@app.get("/welcome")
-async def welcome(user: dict = Depends(oidc.get_current_user)):
-    return {"message": f"Hello {user.get('email') or user.get('sub')}!"}
+@app.get("/watchdogs")
+async def watchdogs(request: Request, user: dict = Depends(oidc.get_current_user)):
+    if not os.path.exists(data_file):
+        watchdogs = []
+    else:
+        with open(data_file, "r", encoding="utf-8") as f:
+            watchdogs = json.load(f)
+    data = {
+        "request": request,
+        "watchdogs": watchdogs,
+        "user": user
+    }
+    return templates.TemplateResponse( "watchdogs.html", data )
 
-@app.get("/me")
-async def me(user: dict = Depends(oidc.get_current_user)):
-    return JSONResponse(user)
+@app.get("/forbidden")
+async def forbidden(request: Request):
+    data = {
+        "request": request, 
+        "message": "Forbidden", 
+        "detail": "You do not have permission to access this resource."
+    }
+    return templates.TemplateResponse("message.html", data, status_code=403)
+
+@app.get("/logged_out")
+async def logged_out(request: Request):
+    data = {
+        "request": request,
+        "message": "Logged Out",
+        "detail": "You have been logged out successfully.",
+        "link_url": "/",
+        "link_text": "Return to Home"
+    }
+    return templates.TemplateResponse("message.html", data, status_code=200)
+
+@app.get("/error")
+async def error(request: Request):
+    data = {
+        "request": request,
+        "message": "Error",
+        "detail": "An unexpected error occurred."
+    }
+    return templates.TemplateResponse("message.html", data, status_code=500)
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    if exc.status_code == 403:
+        return RedirectResponse(url="/forbidden")
+    return RedirectResponse(url="/error")  # fallback for other HTTP errors
 
 # routes
 

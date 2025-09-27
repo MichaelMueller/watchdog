@@ -1,0 +1,12 @@
+{# templates/login.html #}
+{% extends "base.html" %}
+
+{% block content %}
+
+  <h1>{{ message }}</h1>
+  <p>{{ detail }}</p>
+  {% if link_url and link_text %}
+    <a href="{{ link_url }}">{{ link_text }}</a>
+  {% endif %}
+
+{% endblock %}
