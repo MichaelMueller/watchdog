@@ -1,15 +1,12 @@
-from typing import Literal, Optional
+from typing import Literal, Optional, Type
 from pydantic import BaseModel, Field
 from typing import TypeVar, Generic
 
 from .bool_condition import BoolCondition
 
-T = TypeVar('T', bound='BaseModel')
-class Descriptor(BoolCondition, Generic[T]):
-    type:str
-    target_cls: T = Field(default=None, exclude=True)
+class Descriptor(BoolCondition):
     
-    def evaluate(self, obj: T) -> bool:
+    def evaluate(self, obj:Type[BaseModel]) -> bool:
         if not isinstance(obj, BaseModel):
             return False
 
@@ -18,6 +15,8 @@ class Descriptor(BoolCondition, Generic[T]):
                 continue
             
             bool_condition:BoolCondition = getattr(self, name)
+            if not isinstance(bool_condition, BoolCondition):
+                raise ValueError(f"Field {name} is not a BoolCondition")
             
             if bool_condition is not None:
                 target_value = getattr(obj, name, None)

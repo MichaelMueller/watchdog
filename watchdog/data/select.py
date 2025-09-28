@@ -11,7 +11,7 @@ class Select(Query, Generic[T]):
     
     target_cls: T = Field(default=None, exclude=True)
     
-    descriptors: Optional[ List[ Descriptor[T] ] ] = None
+    descriptors: List[ Descriptor ] = []
     limit: Optional[int] = None
     offset: Optional[int] = None
 
