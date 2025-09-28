@@ -7,7 +7,7 @@ from .query import Query
 from .descriptor import Descriptor
 
 T = TypeVar('T', bound='BaseModel')
-class Select(Query, BoolCondition, Generic[T]):    
+class Select(Query, Generic[T]):    
     
     target_cls: T = Field(default=None, exclude=True)
     
