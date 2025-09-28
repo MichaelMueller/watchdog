@@ -77,6 +77,48 @@ async def watchdogs(request: Request, user: dict = Depends(oidc.get_current_user
     }
     return templates.TemplateResponse( "watchdogs.html", data )
 
+@app.post("/watchdogs")
+async def create_watchdog(request: Request, user: dict = Depends(oidc.get_current_user)):
+    if not user:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    data = await request.json()
+    if not os.path.exists(data_file):
+        watchdogs = []
+    else:
+        with open(data_file, "r", encoding="utf-8") as f:
+            watchdogs = json.load(f)
+    watchdogs.append(data)
+    with open(data_file, "w", encoding="utf-8") as f:
+        json.dump(watchdogs, f, indent=2)
+
+    return JSONResponse({"status": "success", "message": "Watchdog created"})
+    
+
+@app.post("/oidc_config")
+async def oidc_config(request: Request, user: dict = Depends(oidc.get_current_user)):
+    if not user:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    config_data = await request.json()
+    await oidc.set_config(Oidc.Config(**config_data))
+    return JSONResponse({"status": "success"})
+
+@app.get("/oidc_config")
+async def oidc_config(request: Request, user: dict = Depends(oidc.get_current_user)):
+    if not user:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    config:Oidc.Config = oidc.config()
+    data = {
+        "request": request,
+        "message": "OIDC Configuration",
+        "detail": config.model_dump_json(indent=4),
+        "pre_content": True,
+        "link_url": "/watchdogs",
+        "link_text": "Show watchdogs"
+    }
+    return templates.TemplateResponse("message.html", data, status_code=200)
+
 @app.get("/forbidden")
 async def forbidden(request: Request):
     data = {

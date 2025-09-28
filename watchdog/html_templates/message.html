@@ -4,7 +4,13 @@
 {% block content %}
 
   <h1>{{ message }}</h1>
-  <p>{{ detail }}</p>
+  <p>
+    {% if pre_content %}
+      <pre>{{ detail }}</pre>
+    {% else %}
+      {{ detail }}
+    {% endif %}
+  </p>
   {% if link_url and link_text %}
     <a href="{{ link_url }}">{{ link_text }}</a>
   {% endif %}

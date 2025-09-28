@@ -1,6 +1,8 @@
 # builtin
 from typing import Optional
 import logging
+import copy
+
 # 3rd party
 from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import RedirectResponse, JSONResponse
@@ -48,6 +50,10 @@ class Oidc:
                 self._jwks_cache = {}
         self._config = config
 
+    def config(self) -> "Oidc.Config":
+        dc = copy.deepcopy(self._config.model_dump())
+        return Oidc.Config(**dc)
+    
     async def _get_metadata(self) -> dict:
         if self._metadata_cache:
             return self._metadata_cache
